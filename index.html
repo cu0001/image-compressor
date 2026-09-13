@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Compressor — ブラウザ完結型の画像圧縮ツール</title>
+  <meta name="description" content="画像を外部に送信せず、ブラウザ内だけで圧縮・変換・リサイズできるツールです。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=17">
+</head>
+<body>
+
+  <!-- ===== 背景エフェクト ===== -->
+  <div class="bg-effects" aria-hidden="true">
+    <div class="ambient-glow glow-top"></div>
+    <div class="ambient-glow glow-bottom"></div>
+    <canvas id="cosmicCanvas" class="cosmic-canvas"></canvas>
+  </div>
+
+  <div class="app-container">
+
+    <!-- ===== ヘッダー ===== -->
+    <header class="header">
+      <div class="header-main">
+        <div class="brand">
+          <div class="logo-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+          </div>
+          <h1 class="app-title">Image Compressor</h1>
+        </div>
+
+        <div class="privacy-badge">
+          <span class="status-dot"></span>
+          <span>100% ローカル処理</span>
+        </div>
+      </div>
+
+      <p class="header-description">
+        画像を外部サーバーへ送信せず、ブラウザ内だけで安全・高速に圧縮・形式変換・リサイズができるツールです。
+      </p>
+    </header>
+
+    <!-- ===== 手順ガイド ===== -->
+    <div class="steps-bar">
+      <div class="step-item">
+        <span class="step-badge">1</span>
+        <div class="step-text">
+          <strong class="step-title">画像を追加</strong>
+          <span class="step-desc">ドラッグ＆ドロップまたは選択</span>
+        </div>
+      </div>
+      <div class="step-divider" aria-hidden="true"></div>
+      <div class="step-item">
+        <span class="step-badge">2</span>
+        <div class="step-text">
+          <strong class="step-title">品質・形式を指定</strong>
+          <span class="step-desc">圧縮率・サイズ変更を設定</span>
+        </div>
+      </div>
+      <div class="step-divider" aria-hidden="true"></div>
+      <div class="step-item">
+        <span class="step-badge">3</span>
+        <div class="step-text">
+          <strong class="step-title">圧縮して保存</strong>
+          <span class="step-desc">比較・個別保存またはZIP一括</span>
+        </div>
+      </div>
+    </div>
+
+    <main class="main">
+
+      <!-- ===== ドロップゾーン ===== -->
+      <section class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="画像ファイルを追加">
+        <div class="drop-zone-inner">
+          <div class="drop-icon-wrapper">
+            <svg class="drop-icon" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+          </div>
+
+          <div class="drop-text-group">
+            <p class="drop-primary-text">ここに画像をドラッグ＆ドロップ</p>
+            <p class="drop-secondary-text">または <span class="file-browse-link">ファイルを選択</span> して追加</p>
+          </div>
+
+          <p class="supported-formats">JPEG · PNG · WebP · GIF · BMP · SVG に対応</p>
+        </div>
+      </section>
+
+      <input type="file" id="fileInput" accept="image/*" multiple hidden>
+
+      <!-- ===== 設定パネル ===== -->
+      <section class="settings-panel hidden" id="settingsPanel">
+
+        <div class="settings-panel-header">
+          <h2 class="settings-panel-title">圧縮・変換設定</h2>
+        </div>
+
+        <div class="settings-grid">
+
+          <!-- 品質 -->
+          <div class="setting-card">
+            <div class="setting-card-header">
+              <label class="setting-label" for="qualitySlider">品質</label>
+              <span class="setting-value-badge" id="qualityValue">75%</span>
+            </div>
+
+            <div class="preset-group">
+              <button type="button" class="preset-btn" data-quality="50">軽量</button>
+              <button type="button" class="preset-btn active" data-quality="75">推奨</button>
+              <button type="button" class="preset-btn" data-quality="85">高画質</button>
+              <button type="button" class="preset-btn" data-quality="95">最高</button>
+            </div>
+
+            <input type="range" class="slider" id="qualitySlider" min="1" max="100" value="75" aria-label="圧縮品質">
+            
+            <div class="slider-hints">
+              <span>サイズ優先</span>
+              <span>画質優先</span>
+            </div>
+          </div>
+
+          <!-- フォーマット -->
+          <div class="setting-card">
+            <div class="setting-card-header">
+              <span class="setting-label">出力形式</span>
+            </div>
+
+            <div class="format-group" role="radiogroup" aria-label="出力フォーマット">
+              <button type="button" class="format-btn active" data-format="image/jpeg" role="radio" aria-checked="true">
+                <span class="fmt-name">JPEG</span>
+                <span class="fmt-badge">推奨</span>
+              </button>
+              <button type="button" class="format-btn" data-format="image/png" role="radio" aria-checked="false">
+                <span class="fmt-name">PNG</span>
+                <span class="fmt-badge">透過</span>
+              </button>
+              <button type="button" class="format-btn" data-format="image/webp" role="radio" aria-checked="false">
+                <span class="fmt-name">WebP</span>
+                <span class="fmt-badge">高圧縮</span>
+              </button>
+            </div>
+
+            <p class="format-note" id="formatNote">JPEG: 写真や一般的な画像に最適</p>
+          </div>
+
+          <!-- リサイズ -->
+          <div class="setting-card">
+            <div class="setting-card-header">
+              <span class="setting-label">リサイズ</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="enableResize">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="resize-content hidden" id="resizeOptions">
+              <div class="resize-presets">
+                <button type="button" class="resize-preset-btn" data-w="1920" data-h="1080">1080p</button>
+                <button type="button" class="resize-preset-btn" data-w="1280" data-h="720">720p</button>
+                <button type="button" class="resize-preset-btn" data-w="800" data-h="800">800×800</button>
+                <button type="button" class="resize-preset-btn" data-w="400" data-h="400">400×400</button>
+              </div>
+
+              <div class="resize-dimension-inputs">
+                <div class="dimension-input-wrapper">
+                  <label for="maxWidth">最大幅</label>
+                  <div class="input-with-unit">
+                    <input type="number" id="maxWidth" min="1" placeholder="1920">
+                    <span>px</span>
+                  </div>
+                </div>
+                <span class="dimension-cross">×</span>
+                <div class="dimension-input-wrapper">
+                  <label for="maxHeight">最大高</label>
+                  <div class="input-with-unit">
+                    <input type="number" id="maxHeight" min="1" placeholder="1080">
+                    <span>px</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <p class="resize-hint-text">アスペクト比を維持して縮小</p>
+          </div>
+
+        </div><!-- /.settings-grid -->
+
+        <!-- アクションボタン -->
+        <div class="action-bar">
+          <button type="button" class="btn btn-primary" id="compressAllBtn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            <span>一括圧縮</span>
+          </button>
+
+          <button type="button" class="btn btn-secondary hidden" id="downloadAllBtn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>ZIP保存</span>
+          </button>
+
+          <button type="button" class="btn btn-ghost" id="clearAllBtn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            <span>クリア</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ===== 進捗 ===== -->
+      <section class="progress-section hidden" id="progressSection">
+        <div class="progress-card">
+          <div class="progress-header">
+            <span class="progress-status" id="progressText">圧縮を準備しています…</span>
+            <span class="progress-percentage" id="progressPercent">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-indicator" id="progressFill"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== サマリー ===== -->
+      <section class="summary-section hidden" id="summarySection">
+        <div class="summary-grid">
+          <div class="summary-card">
+            <span class="summary-label">枚数</span>
+            <span class="summary-value" id="summaryCount">0</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-label">圧縮前</span>
+            <span class="summary-value" id="summaryOriginal">0 B</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-label">圧縮後</span>
+            <span class="summary-value" id="summaryCompressed">0 B</span>
+          </div>
+          <div class="summary-card highlight">
+            <span class="summary-label">削減率</span>
+            <span class="summary-value" id="summaryReduction">0%</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 画像リスト ===== -->
+      <section class="image-list" id="imageList"></section>
+
+    </main>
+
+    <!-- ===== フッター ===== -->
+    <footer class="footer">
+      <p>Image Compressor — ローカル完結・画像は外部へ送信されません</p>
+    </footer>
+
+  </div><!-- /.app-container -->
+
+  <!-- ===== 比較モーダル ===== -->
+  <div class="modal hidden" id="compareModal" role="dialog" aria-modal="true" aria-labelledby="compareModalTitle">
+    <div class="modal-overlay"></div>
+
+    <div class="modal-content">
+      <button type="button" class="modal-close" id="closeModal" aria-label="閉じる">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <div class="modal-header">
+        <h2 class="modal-title" id="compareModalTitle">画質比較</h2>
+        <p class="modal-subtitle">スライダーを左右にドラッグして圧縮前後の違いを確認できます</p>
+      </div>
+
+      <!-- ファイルサイズ情報バー -->
+      <div class="compare-info-bar">
+        <div class="compare-info-item">
+          <span class="compare-info-label">圧縮前</span>
+          <span class="compare-info-value" id="compareOriginalSize">—</span>
+        </div>
+        <div class="compare-info-arrow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </div>
+        <div class="compare-info-item">
+          <span class="compare-info-label">圧縮後</span>
+          <span class="compare-info-value accent" id="compareCompressedSize">—</span>
+        </div>
+        <div class="compare-info-reduction">
+          <span class="compare-info-reduction-badge" id="compareReductionBadge">—</span>
+        </div>
+      </div>
+
+      <div class="compare-container">
+        <div class="compare-wrapper" id="compareWrapper">
+          <img class="compare-img compare-img--back" id="compareCompressed" alt="圧縮後の画像">
+          <div class="compare-clip" id="compareClip">
+            <img class="compare-img compare-img--front" id="compareOriginal" alt="圧縮前の画像">
+          </div>
+
+          <!-- 左右ラベル（画像上に重ねて表示） -->
+          <div class="compare-overlay-label compare-overlay-label--left" id="overlayLabelLeft">圧縮前</div>
+          <div class="compare-overlay-label compare-overlay-label--right" id="overlayLabelRight">圧縮後</div>
+
+          <div class="compare-divider" id="compareDivider">
+            <div class="compare-divider-line"></div>
+            <div class="compare-handle">
+              <span class="handle-arrow handle-arrow--left">◀</span>
+              <span class="handle-grip"></span>
+              <span class="handle-arrow handle-arrow--right">▶</span>
+            </div>
+            <!-- ハンドル付近のラベル -->
+            <div class="handle-label handle-label--left">圧縮前</div>
+            <div class="handle-label handle-label--right">圧縮後</div>
+          </div>
+        </div>
+
+        <!-- スライダー位置インジケーター -->
+        <div class="compare-track">
+          <div class="compare-track-fill" id="compareTrackFill"></div>
+          <div class="compare-track-labels">
+            <span>← 圧縮前（オリジナル）</span>
+            <span>圧縮後 →</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="cosmic.js?v=3"></script>
+  <script src="app.js?v=5"></script>
+</body>
+</html>
